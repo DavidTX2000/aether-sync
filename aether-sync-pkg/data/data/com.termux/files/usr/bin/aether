@@ -1,5 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# AETHER-SYNC v7.3.5 - DavidTX2000
+# AETHER-SYNC v7.3.6 - DavidTX2000
 
 SHADOW="/data/data/com.termux/files/usr/share/aether/shadow"
 SAVE_DIR="/data/data/com.termux/files/home"
@@ -32,39 +32,23 @@ load_env() {
 }
 
 morph() {
-    # Aviso conforme solicitado na imagem [cite: 2026-01-29]
+    # Aviso Original da Imagem 2
     echo -e "${YELLOW}Warning: Please do not delete the cache and data using aether --kill, as we are in the emulation process. Low storage detected (4 GB).${RESET}"
 
     if [ -z "$(ls -A "$SHADOW" 2>/dev/null)" ]; then
         echo -e "${BLUE}[AETHER]${RESET} Cloning Root File System..."
         mkdir -p "$SHADOW/aether_bin" "$SHADOW/root"
         
-        # Clonagem de todas as pastas visíveis
+        # Clonagem Total Silenciosa (Deep Mirror)
         for p in $(ls -1 / 2>/dev/null); do
             mkdir -p "$SHADOW/$p" 2>/dev/null
             cp -asf "/$p"/. "$SHADOW/$p/" 2>/dev/null
         done
         
-        # --- RECONSTRUÇÃO DE ÁREAS RESTRITAS (Deep Knowledge) --- [cite: 2026-01-26]
-        {
-            # Reconstruindo /proc sensível
-            mkdir -p "$SHADOW/proc/sys/kernel"
-            echo "Linux version 5.10.0-aether-ghost" > "$SHADOW/proc/version"
-            echo "1" > "$SHADOW/proc/sys/kernel/printk"
-            
-            # Reconstruindo /sys (SELinux Fake)
-            mkdir -p "$SHADOW/sys/fs/selinux"
-            echo "0" > "$SHADOW/sys/fs/selinux/enforce"
-            
-            # Reconstruindo /data/system (Arquivos de bloqueio fake)
-            mkdir -p "$SHADOW/data/system"
-            touch "$SHADOW/data/system/packages.xml"
-            
-            # Injeção de Identidade Root
-            echo 'root' > "$SHADOW/aether_bin/whoami"
-            echo 'uid=0(root) gid=0(root) groups=0(root)' > "$SHADOW/aether_bin/id"
-            chmod +x "$SHADOW/aether_bin"/*
-        } 2>/dev/null
+        # Injeção de Binários de Root (Corrigido para evitar erro de linha)
+        echo -e '#!/data/data/com.termux/files/usr/bin/bash\necho "root"' > "$SHADOW/aether_bin/whoami"
+        echo -e '#!/data/data/com.termux/files/usr/bin/bash\necho "uid=0(root) gid=0(root) groups=0(root)"' > "$SHADOW/aether_bin/id"
+        chmod +x "$SHADOW/aether_bin"/*
         
         echo -e "${BLUE}[AETHER]${RESET} Mirroring Complete."
     fi
