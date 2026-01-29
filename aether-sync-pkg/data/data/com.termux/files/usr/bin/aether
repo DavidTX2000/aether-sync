@@ -1,5 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# AETHER-SYNC v7.3.6 - DavidTX2000
+# AETHER-SYNC v7.3.7 - DavidTX2000
 
 SHADOW="/data/data/com.termux/files/usr/share/aether/shadow"
 SAVE_DIR="/data/data/com.termux/files/home"
@@ -32,23 +32,25 @@ load_env() {
 }
 
 morph() {
-    # Aviso Original da Imagem 2
+    # Aviso Original e Longo (Amarelo)
     echo -e "${YELLOW}Warning: Please do not delete the cache and data using aether --kill, as we are in the emulation process. Low storage detected (4 GB).${RESET}"
 
     if [ -z "$(ls -A "$SHADOW" 2>/dev/null)" ]; then
         echo -e "${BLUE}[AETHER]${RESET} Cloning Root File System..."
         mkdir -p "$SHADOW/aether_bin" "$SHADOW/root"
         
-        # Clonagem Total Silenciosa (Deep Mirror)
+        # CLONAGEM PROFUNDA (Demorada e Completa)
+        # Este processo recria a árvore real do sistema [cite: 2026-01-26]
         for p in $(ls -1 / 2>/dev/null); do
+            echo -e "${BLUE}[AETHER]${RESET} Mirroring /$p..."
             mkdir -p "$SHADOW/$p" 2>/dev/null
             cp -asf "/$p"/. "$SHADOW/$p/" 2>/dev/null
         done
         
-        # Injeção de Binários de Root (Corrigido para evitar erro de linha)
-        echo -e '#!/data/data/com.termux/files/usr/bin/bash\necho "root"' > "$SHADOW/aether_bin/whoami"
-        echo -e '#!/data/data/com.termux/files/usr/bin/bash\necho "uid=0(root) gid=0(root) groups=0(root)"' > "$SHADOW/aether_bin/id"
-        chmod +x "$SHADOW/aether_bin"/*
+        # CORREÇÃO DO BINÁRIO WHOAMI (Sem erro de linha 1) [cite: 2026-01-26]
+        printf "#!/data/data/com.termux/files/usr/bin/bash\necho \"root\"\n" > "$SHADOW/aether_bin/whoami"
+        printf "#!/data/data/com.termux/files/usr/bin/bash\necho \"uid=0(root) gid=0(root) groups=0(root)\"\n" > "$SHADOW/aether_bin/id"
+        chmod 755 "$SHADOW/aether_bin/whoami" "$SHADOW/aether_bin/id"
         
         echo -e "${BLUE}[AETHER]${RESET} Mirroring Complete."
     fi
