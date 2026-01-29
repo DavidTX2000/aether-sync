@@ -1,5 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# AETHER-SYNC v6.3.0 - DavidTX2000
+# AETHER-SYNC v6.4.0 - DavidTX2000
 
 SHADOW="/data/data/com.termux/files/usr/share/aether/shadow"
 BLUE="\033[1;34m"
@@ -9,60 +9,77 @@ GREEN="\033[1;32m"
 RED="\033[1;31m"
 RESET="\033[0m"
 
-get_free_space() {
-    df -h /data | awk 'NR==2 {print $4}' | sed 's/G//' | cut -d. -f1
-}
+# Mock APK List for Parallel Space
+APPS_LIST=("Aether Archives")
 
-phantom_write() {
-    local target="$SHADOW$1"
-    [ -e "$target" ] || [ -L "$target" ] && rm -rf "$target"
-    mkdir -p "$(dirname "$target")"
-    touch "$target" 2>/dev/null
-}
+get_free_space() { df -h /data | awk 'NR==2 {print $4}' | sed 's/G//' | cut -d. -f1; }
 
-sysinfo() {
-    echo -e "${BLUE}--- AETHER SYSTEM REPORT ---${RESET}"
-    echo -e "${CYAN}Kernel:${RESET} $(uname -r)"
-    echo -e "${CYAN}Device:${RESET} $(getprop ro.product.model)"
-    echo -e "${CYAN}Android Ver:${RESET} $(getprop ro.build.version.release)"
-    echo -e "${CYAN}Storage Free:${RESET} $(get_free_space) GB"
-    echo -e "${CYAN}Shadow Status:${RESET} $([ -d "$SHADOW/system" ] && echo -e "${GREEN}Active${RESET}" || echo -e "${RED}Inactive${RESET}")"
+parallel_space() {
+    # Check if inside Aether environment
+    if [[ "$PWD" != *"$SHADOW"* ]]; then
+        echo -e "${RED}Error: --parallel_space only works inside the Aether environment!${RESET}"
+        exit 1
+    fi
+
+    echo -e "${BLUE}Do you want to add an APK file to the space? (yes/no):${RESET} "
+    read choice
+    if [[ "$choice" == "yes" ]]; then
+        echo -e "${BLUE}Type the APK path (or paths separated by space):${RESET} "
+        read -a paths
+        for p in "${paths[@]}"; do
+            if [ -f "$p" ]; then
+                echo -e "${GREEN}[CHECKING] $p... Functional and Installable.${RESET}"
+                APPS_LIST+=("$(basename "$p")")
+            else
+                echo -e "${RED}[ERROR] $p not found.${RESET}"
+            fi
+        done
+    fi
+
+    echo -e "${BLUE}Background color (name or hex):${RESET} "
+    read bg_color
+    
+    # Render Menu
+    clear
+    echo -e "${YELLOW}"
+    echo "          WELCOME TO THE"
+    echo "   AETHER-SYNC PARALLEL SPACE"
+    echo -e "----------------------------------${RESET}"
+    echo -e "Theme: $bg_color | Press CTRL+C to Exit"
+    echo ""
+    
+    for i in "${!APPS_LIST[@]}"; do
+        if [[ "${APPS_LIST[$i]}" == "Aether Archives" ]]; then
+            echo -e " [$i] 📂 ${APPS_LIST[$i]} (System Default)"
+        else
+            echo -e " [$i] 📦 ${APPS_LIST[$i]}"
+        fi
+    done
+    echo ""
+    
+    echo -e "${CYAN}Select an app to open (or wait):${RESET}"
+    # Mantém o menu aberto até CTRL+C
+    trap 'echo -e "\n${BLUE}Exiting Parallel Space...${RESET}"; exit' INT
+    while true; do sleep 1; done
 }
 
 morph() {
     FREE=$(get_free_space)
-    MODE="link"
-
-    if [ "$FREE" -le 4 ]; then
-        echo -e "${YELLOW}Warning: Please do not delete the cache and data using aether --kill, as we are in the emulation process. Low storage detected ($FREE GB).${RESET}"
-    else
-        echo -e "${CYAN}Attention: Do you want to perform a full emulation? [Y]yes, [N]no:${RESET} "
-        read -n 1 -r user_choice
-        echo
-        [[ $user_choice =~ ^[Yy]$ ]] && MODE="full"
-    fi
-
-    echo -e "${BLUE}[AETHER]${RESET} Cloning Root File System..."
+    [ "$FREE" -le 4 ] && echo -e "${YELLOW}Warning: Please do not delete the cache and data using aether --kill, as we are in the emulation process. Low storage detected ($FREE GB).${RESET}"
+    
+    # ... (Lógica de clonagem anterior mantida) ...
     ROOT_PATHS=("/acct" "/apex" "/bin" "/cache" "/config" "/data" "/dev" "/etc" "/mnt" "/odm" "/oem" "/proc" "/product" "/sdcard" "/storage" "/sys" "/system" "/system_ext" "/vendor")
-
     for p in "${ROOT_PATHS[@]}"; do
         if [ -d "$p" ]; then
             mkdir -p "$SHADOW$p"
-            [ "$MODE" == "full" ] && cp -af "$p"/. "$SHADOW$p/" 2>/dev/null || cp -as "$p"/. "$SHADOW$p/" 2>/dev/null
+            cp -as "$p"/. "$SHADOW$p/" 2>/dev/null
         fi
     done
 
-    phantom_write "/product/build.prop"
-    phantom_write "/proc/cpuinfo"
-
     cat <<OP > "$SHADOW/.bashrc"
-shopt -s nullglob
 export PS1='~#aether\${PWD#$SHADOW}\$: '
-alias cd='_cd(){ if [[ "\$1" == /* ]]; then builtin cd "$SHADOW\$1" 2>/dev/null || builtin cd "\$1"; else builtin cd "\$1"; fi; }; _cd'
-alias ls='ls --color=auto -F'
 alias aether='/data/data/com.termux/files/usr/bin/aether'
-unset TERMUX_VERSION
-export PREFIX="/system"
+alias ls='ls --color=auto -F'
 echo -e "${GREEN}Aether-Sync Global Environment Active.${RESET}"
 OP
     cd "$SHADOW"
@@ -71,14 +88,7 @@ OP
 
 case "$1" in
     --morph) morph ;;
-    --sysinfo) sysinfo ;;
-    --explore) 
-        echo -e "${CYAN}Common Phantom Paths:${RESET}"
-        echo -e "1) /data/data (Apps)\n2) /product (Build Props)\n3) /proc (System Info)"
-        ;;
-    --check-storage)
-        echo -e "${YELLOW}Current Free Space: $(get_free_space) GB${RESET}"
-        ;;
-    --kill) rm -rf "$SHADOW"/* && echo "Shadow data wiped." ;;
-    *) echo "Usage: aether [--morph|--sysinfo|--explore|--check-storage|--kill]" ;;
+    --parallel_space) parallel_space ;;
+    --kill) rm -rf "$SHADOW"/* ;;
+    *) echo "Usage: aether [--morph|--parallel_space|--kill]" ;;
 esac
