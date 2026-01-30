@@ -8,7 +8,7 @@ pkgs.stdenv.mkDerivation rec {
     owner = "DavidTX2000";
     repo = "aether-sync";
     rev = "distribution";
-    sha256 = "0000000000000000000000000000000000000000000000000000"; 
+    sha256 = "21e01698580ca8a85c5e9b8cc2973e6d4256e1804570c7acf449e695df094f0d"; 
   };
 
   installPhase = ''
