@@ -7,7 +7,7 @@ pkgs.stdenv.mkDerivation rec {
   src = pkgs.fetchFromGitHub {
     owner = "DavidTX2000";
     repo = "aether-sync";
-    rev = "v${version}";
+    rev = "distribution";
     sha256 = "0000000000000000000000000000000000000000000000000000"; 
   };
 
